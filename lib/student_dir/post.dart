@@ -10,6 +10,11 @@ class _StudentpostState extends State<Studentpost> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text("Student post "),
+        backgroundColor: Colors.blueAccent,
+        centerTitle:true,
+      ),
 
     );
   }

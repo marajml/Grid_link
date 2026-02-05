@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:grid_link/student_dir/post.dart';
 
 import 'home.dart';
@@ -12,16 +13,19 @@ class StudentHome extends StatefulWidget {
 }
 
 class _StudentHomeState extends State<StudentHome> {
+
   int _curretnindesx=0;
   final List<Widget> _page=[
     Studenthomepage(),
     Studentpost(),
     NotificationStudent(),
-    Jobs()
+    StudentJobFeed()
   ];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+
+
       body:
         _page[_curretnindesx],
       bottomNavigationBar: BottomNavigationBar(

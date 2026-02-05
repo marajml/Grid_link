@@ -67,11 +67,10 @@ class Signupdata with ChangeNotifier {
         'start_year': start_year,
         'end_year': end_year,
         'cv_url': cvUrl,
-
         'registration_no': registration_no,
         'location': location,
         'city': city,
-        'image_url':imageurl
+        'company_logo_url':imageurl
       });
 
       notifyListeners();
@@ -95,7 +94,7 @@ class Signupdata with ChangeNotifier {
       final file = File(filePath);
       final fileName = basename(file.path);
 
-        final storagePath = 'students/$userId/$fileName';
+        final storagePath ='students/$userId/$fileName';
 
       await _supabase.storage
           .from('cvs')

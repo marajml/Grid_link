@@ -9,6 +9,12 @@ class Studenthomepage extends StatefulWidget {
 class _StudenthomepageState extends State<Studenthomepage> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold();
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Home"),
+        backgroundColor: Colors.blueAccent,
+        centerTitle:true,
+      ),
+    );
   }
 }

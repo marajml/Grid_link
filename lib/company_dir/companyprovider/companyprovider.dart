@@ -46,6 +46,7 @@ class Company_postdeta with ChangeNotifier {
     final imageUrl = await uploadImage();
 
     final response = await supabase.from('company_post').insert({
+      'company_id': supabase.auth.currentUser!.id,
       'title': title,
       'description': description,
       'image': imageUrl,
