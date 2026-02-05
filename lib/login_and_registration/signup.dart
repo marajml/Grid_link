@@ -47,7 +47,6 @@ class _SignupState extends State<Signup> {
     }
   }
 
-
   // Year picker
   Future<void> pickYear(
     BuildContext context,
@@ -322,17 +321,22 @@ class _SignupState extends State<Signup> {
                     SizedBox(height: 8.h),
                     Row(
                       children: [
-                        IconButton(onPressed: (){
-                          provider.pickImage();
-
-                        }, icon: Icon(Icons.image)),
-                        ?provider.Image != null ? Image.file(File(provider.Image!.path),
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
-                        ): null
+                        IconButton(
+                          onPressed: () {
+                            provider.pickImage();
+                          },
+                          icon: Icon(Icons.image),
+                        ),
+                        ?provider.Image != null
+                            ? Image.file(
+                                File(provider.Image!.path),
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                              )
+                            : null,
                       ],
-                    )
+                    ),
                   ],
 
                   // Password

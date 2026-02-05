@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "997558142071",
+    "project_id": "gridlink-67007",
+    "storage_bucket": "gridlink-67007.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:997558142071:android:9b637e79bcd626d2bb3272",
+        "android_client_info": {
+          "package_name": "com.example.grid_link"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdLGZQhNMvuP8ZL9OHuoyADMZ4tsFo0v4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

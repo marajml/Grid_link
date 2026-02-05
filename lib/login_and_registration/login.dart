@@ -94,7 +94,7 @@ class _LoginState extends State<Login> {
                       if (result.user != null) {
                         // Fetch role from DB
                         final roleData = await supabase
-                            .from('auth') // ya jahan role store hai
+                            .from('userauth') // ya jahan role store hai
                             .select('role')
                             .eq('id', result.user!.id)
                             .single();
@@ -107,6 +107,10 @@ class _LoginState extends State<Login> {
                         if (role == 'Company') context.go('/companydashboard');
                         if (role == 'Student Office') context.go('/Office_page');
                       }
+
+
+
+
                     }catch(e){
                       print(e);
                     }finally{
