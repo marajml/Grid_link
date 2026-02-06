@@ -12,6 +12,7 @@ import 'package:grid_link/student_dir/provider/jobsprovider.dart';
 import 'package:grid_link/student_dir/provider/studentappliedjobsprovider.dart';
 import 'package:grid_link/student_dir/student_dashboard.dart';
 import 'package:grid_link/student_office/home_page.dart';
+import 'package:grid_link/supervisor_dir/provider/student_request_provider.dart';
 import 'package:grid_link/supervisor_dir/supervisor_home.dart';
 import 'package:path/path.dart';
 import 'package:provider/provider.dart';
@@ -22,7 +23,7 @@ import 'company_dir/apply_student.dart';
 import 'company_dir/company_dashboard.dart';
 import 'company_dir/companyprovider/applied_students_provider.dart' show AppliedStudentsProvider;
 import 'company_dir/companyprovider/provider_home.dart';
-import 'company_dir/letter_request.dart';
+import 'student_dir/letter_request.dart';
 import 'company_dir/student_profile.dart';
 import 'login_and_registration/login.dart';
 import 'login_and_registration/signup.dart';
@@ -60,6 +61,7 @@ class MyApp extends StatelessWidget {
             ChangeNotifierProvider(create: (_) => AppliedStudentsProvider()),
             ChangeNotifierProvider(create: (_) => AppliedJobsProvider()),
             ChangeNotifierProvider(create: (_) => StudentAppliedJobsProvider()),
+            ChangeNotifierProvider(create: (_)=>Student_Letter_Request()),
 
           ],
           child: MaterialApp.router(
@@ -72,13 +74,14 @@ class MyApp extends StatelessWidget {
   }
   final GoRouter _router=GoRouter(
 
+
       routes:
   [
     GoRoute(path: ("/"),builder: (context,state)=>SplashScreen()),
     GoRoute(path: "/login",builder: (context,state)=>Login()),
     GoRoute(path: '/signup',builder: (context,state)=>Signup()),
 
-    GoRoute(path: '/officehome',builder: (context,state)=>Office_page()),
+    GoRoute(path: '/officehome',builder: (context,state)=>StudentOfficeRequestsScreen()),
     GoRoute(path: '/supervisorhome',builder: (context,state)=>SupervisorHome()),
     GoRoute(path: '/companydashboard',builder: (context,state)=>CompanyHome()),
     GoRoute(path: '/Studentdashboard',builder: (context,state)=>StudentHome()),
