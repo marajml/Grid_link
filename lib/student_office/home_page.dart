@@ -1,7 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 
 class StudentOfficeRequestsScreen extends StatefulWidget {
@@ -28,9 +28,11 @@ class _StudentOfficeRequestsScreenState
   Future<void> fetchRequests() async {
     final res = await supabase
         .from('teacher_request')
-        .select('id,status,student_id,supervisor_id,forwarded_at')
+        .select(
+        'id,student_id,supervisor_id,office_status,office_letter_name,office_letter_url')
         .eq('status', 'forwarded')
-        .eq('forwarded_to_office', true);
+        .eq('forwarded_to_office', true)
+        .order('created_at');
 
     setState(() {
       requests = List<Map<String, dynamic>>.from(res);
@@ -41,12 +43,12 @@ class _StudentOfficeRequestsScreenState
   Future<Map<String, dynamic>> getUser(String id) async {
     return await supabase
         .from('userauth')
-        .select('name, arid_no, email')
+        .select('name,arid_no,email')
         .eq('id', id)
         .single();
   }
 
-  /// 📄 UPLOAD WORD LETTER
+  /// 📄 Upload Word Letter
   Future<void> uploadLetter(String requestId) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -56,25 +58,30 @@ class _StudentOfficeRequestsScreenState
     if (result == null) return;
 
     final file = File(result.files.single.path!);
-    final filePath = 'office_letters/$requestId.docx';
+    final fileName = result.files.single.name;
+    final storagePath = 'office_letters/$requestId-$fileName';
 
     await supabase.storage
         .from('letters_from_office')
-        .upload(filePath, file, fileOptions: const FileOptions(upsert: true));
+        .upload(
+      storagePath,
+      file,
+      fileOptions: const FileOptions(upsert: true),
+    );
 
     await supabase.from('teacher_request').update({
-      'office_letter_url': filePath,
-      'office_status': 'prepared',
-      'office_processed_at': DateTime.now().toIso8601String(),
+      'office_letter_url': storagePath,
+      'office_letter_name': fileName,
     }).eq('id', requestId);
 
     fetchRequests();
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Letter uploaded for supervisor")),
+      const SnackBar(content: Text("Letter uploaded successfully")),
     );
   }
 
+  /// ✅ Approve / Reject
   Future<void> officeDecision(String requestId, String decision) async {
     await supabase.from('teacher_request').update({
       'office_status': decision,
@@ -86,6 +93,17 @@ class _StudentOfficeRequestsScreenState
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Request $decision")),
     );
+  }
+
+  Color statusColor(String status) {
+    switch (status) {
+      case 'approved':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.orange;
+    }
   }
 
   @override
@@ -103,11 +121,12 @@ class _StudentOfficeRequestsScreenState
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : requests.isEmpty
-          ? const Center(child: Text("No pending office requests"))
+          ? const Center(child: Text("No office requests"))
           : ListView.builder(
         itemCount: requests.length,
         itemBuilder: (context, index) {
           final req = requests[index];
+          final officeStatus = req['office_status'] ?? 'pending';
 
           return FutureBuilder(
             future: Future.wait([
@@ -128,54 +147,94 @@ class _StudentOfficeRequestsScreenState
               return Card(
                 margin: const EdgeInsets.all(12),
                 child: Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Student",
+
+                      /// STUDENT
+                      Text("Student",
                           style: TextStyle(
-                              fontWeight: FontWeight.bold)),
-                      Text("Name: ${student['name']}"),
-                      Text("ARID: ${student['arid_no']}"),
-                      Text("Email: ${student['email']}"),
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blueGrey)),
+                      Text("${student['name']} (${student['arid_no']})"),
+                      Text(student['email']),
 
                       const Divider(),
 
-                      const Text("Supervisor",
+                      /// SUPERVISOR
+                      Text("Supervisor",
                           style: TextStyle(
-                              fontWeight: FontWeight.bold)),
-                      Text("Name: ${supervisor['name']}"),
-                      Text("Email: ${supervisor['email']}"),
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blueGrey)),
+                      Text(supervisor['name']),
+                      Text(supervisor['email']),
 
-                      const SizedBox(height: 15),
+                      const Divider(height: 25),
 
-                      /// 📄 LETTER UPLOAD
-                      ElevatedButton.icon(
-                        onPressed: () =>
-                            uploadLetter(req['id']),
-                        icon: const Icon(Icons.upload_file),
-                        label:
-                        const Text("Upload Letter (Word)"),
+                      /// STATUS
+                      Row(
+                        children: [
+                          const Text("Status: "),
+                          Text(
+                            officeStatus.toUpperCase(),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: statusColor(officeStatus)),
+                          )
+                        ],
                       ),
 
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
 
+                      /// FILE INFO
+                      if (req['office_letter_name'] != null)
+                        Row(
+                          children: [
+                            const Icon(Icons.description,
+                                color: Colors.blue),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                req['office_letter_name'],
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                      const SizedBox(height: 10),
+
+                      /// UPLOAD BUTTON
+                      ElevatedButton.icon(
+                        onPressed: () => uploadLetter(req['id']),
+                        icon: const Icon(Icons.upload_file),
+                        label: const Text("Upload Word Letter"),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      /// APPROVE / REJECT
                       Row(
                         mainAxisAlignment:
                         MainAxisAlignment.spaceBetween,
                         children: [
                           ElevatedButton(
-                            onPressed: () =>
-                                officeDecision(req['id'], 'approved'),
+                            onPressed: officeStatus == 'approved'
+                                ? null
+                                : () => officeDecision(
+                                req['id'], 'approved'),
                             child: const Text("Approve"),
                           ),
                           OutlinedButton(
-                            onPressed: () =>
-                                officeDecision(req['id'], 'rejected'),
+                            onPressed: officeStatus == 'rejected'
+                                ? null
+                                : () => officeDecision(
+                                req['id'], 'rejected'),
                             child: const Text("Reject"),
                           ),
                         ],
-                      )
+                      ),
                     ],
                   ),
                 ),

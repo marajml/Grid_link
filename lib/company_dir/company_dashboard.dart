@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'company_home.dart';
 import 'companyprovider/provider_home.dart';
+import 'companyrecomendationscreen.dart';
 import 'jobpost.dart';
 class CompanyHome extends StatefulWidget {
   const CompanyHome({super.key});
@@ -50,7 +51,8 @@ class _CompanyHomeState extends State<CompanyHome> {
    int _curretnindex=0;
   final List<Widget> _page=[
     CompanyHomescreen(),
-    Company_job_post()
+    Company_job_post(),
+    CompanyRecommendationsScreen(),
   ];
   @override
   Widget build(BuildContext context) {
@@ -113,6 +115,7 @@ class _CompanyHomeState extends State<CompanyHome> {
           items: [
             BottomNavigationBarItem(icon: Icon(Icons.home,size: 20,),label: "Home"),
             BottomNavigationBarItem(icon: Icon(Icons.add_card,size: 20,),label: "Jobs"),
+            BottomNavigationBarItem(icon: Icon(Icons.accessibility_rounded,size: 20,),label: "Letter"),
 
 
           ]),

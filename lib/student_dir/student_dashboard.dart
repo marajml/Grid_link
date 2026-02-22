@@ -16,7 +16,7 @@ class _StudentHomeState extends State<StudentHome> {
 
   int _curretnindesx=0;
   final List<Widget> _page=[
-    Studenthomepage(),
+    HomeScreen(),
     Studentpost(),
     NotificationStudent(),
     StudentJobFeed()

@@ -17,7 +17,7 @@ class _NotificationStudentState extends State<NotificationStudent> {
 
   final List<Widget> _pages = [
     StudentAppliedJobsScreen(),
-     Supervisorresponsepage(),
+    StudentRequestStatusScreen(),
   ];
 
   @override
@@ -25,7 +25,7 @@ class _NotificationStudentState extends State<NotificationStudent> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Notifications"),
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Colors.red,
         centerTitle: true,
       ),
       body: _pages[_currentIndex],
