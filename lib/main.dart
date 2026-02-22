@@ -9,6 +9,7 @@ import 'package:grid_link/splashscreen.dart';
 import 'package:grid_link/company_dir/companyprovider/companyprovider.dart';
 import 'package:grid_link/student_dir/provider/applied_jobs_provider.dart';
 import 'package:grid_link/student_dir/provider/jobsprovider.dart';
+import 'package:grid_link/student_dir/provider/student_post.dart';
 import 'package:grid_link/student_dir/provider/studentappliedjobsprovider.dart';
 import 'package:grid_link/student_dir/student_dashboard.dart';
 import 'package:grid_link/student_office/home_page.dart';
@@ -62,6 +63,7 @@ class MyApp extends StatelessWidget {
             ChangeNotifierProvider(create: (_) => AppliedJobsProvider()),
             ChangeNotifierProvider(create: (_) => StudentAppliedJobsProvider()),
             ChangeNotifierProvider(create: (_)=>Student_Letter_Request()),
+            ChangeNotifierProvider(create: (_)=>StudentPost()),
 
           ],
           child: MaterialApp.router(

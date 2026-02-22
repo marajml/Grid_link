@@ -25,14 +25,13 @@ class _SupervisorForwardedRequestsScreenState
     fetchRequests();
   }
 
-  // 🔹 FETCH ALL REQUESTS OF SUPERVISOR
   Future<void> fetchRequests() async {
     final supervisorId = supabase.auth.currentUser!.id;
 
     final res = await supabase
         .from('teacher_request')
         .select(
-        'id,student_id,office_response,office_letter_url,supervisor_signed_pdf,forwarded_at')
+        'id,student_id,office_status,office_letter_url,supervisor_signed_pdf')
         .eq('supervisor_id', supervisorId)
         .order('forwarded_at', ascending: false);
 
@@ -42,7 +41,6 @@ class _SupervisorForwardedRequestsScreenState
     });
   }
 
-  // 🔹 STUDENT INFO
   Future<Map<String, dynamic>> getStudent(String id) async {
     return await supabase
         .from('userauth')
@@ -51,14 +49,12 @@ class _SupervisorForwardedRequestsScreenState
         .single();
   }
 
-  // 🔹 OPEN FILE
   Future<void> openFile(String bucket, String path) async {
     final url = supabase.storage.from(bucket).getPublicUrl(path);
     await launchUrl(Uri.parse(url),
         mode: LaunchMode.externalApplication);
   }
 
-  // 🔹 UPLOAD SIGNED PDF
   Future<void> uploadSignedPdf(String requestId) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -79,41 +75,29 @@ class _SupervisorForwardedRequestsScreenState
 
     await supabase.from('teacher_request').update({
       'supervisor_signed_pdf': path,
-      'signed_at': DateTime.now().toIso8601String(),
     }).eq('id', requestId);
 
     fetchRequests();
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Signed PDF uploaded")),
+      const SnackBar(content: Text("PDF sent to student")),
     );
-  }
-
-  Color statusColor(String? status) {
-    if (status == 'approved') return Colors.green;
-    if (status == 'rejected') return Colors.red;
-    return Colors.orange;
-  }
-
-  String statusText(String? status) {
-    if (status == 'approved') return "APPROVED";
-    if (status == 'rejected') return "REJECTED";
-    return "WAITING FOR STUDENT OFFICE";
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:
-      AppBar(title: const Text("Supervisor Requests Status")),
+      appBar: AppBar(title: const Text("Supervisor Requests")),
       body: loading
           ? const Center(child: CircularProgressIndicator())
-          : requests.isEmpty
-          ? const Center(child: Text("No requests found"))
           : ListView.builder(
         itemCount: requests.length,
         itemBuilder: (context, index) {
           final req = requests[index];
+          final officeStatus =
+          req['office_status']?.toString().toLowerCase();
+          final officeLetter = req['office_letter_url'];
+          final signedPdf = req['supervisor_signed_pdf'];
 
           return FutureBuilder<Map<String, dynamic>>(
             future: getStudent(req['student_id']),
@@ -126,7 +110,6 @@ class _SupervisorForwardedRequestsScreenState
               }
 
               final student = snapshot.data!;
-              final officeStatus = req['office_response'];
 
               return Card(
                 margin: const EdgeInsets.all(12),
@@ -139,69 +122,71 @@ class _SupervisorForwardedRequestsScreenState
                       Text(student['name'],
                           style: const TextStyle(
                               fontSize: 18,
-                              fontWeight:
-                              FontWeight.bold)),
+                              fontWeight: FontWeight.bold)),
                       Text(
                           "ARID: ${student['arid_no']} | Semester: ${student['semester']}"),
                       Text(student['email']),
+                      const Divider(height: 25),
 
-                      const Divider(height: 20),
-
-                      Text(
-                        "STATUS: ${statusText(officeStatus)}",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color:
-                          statusColor(officeStatus),
+                      /// ❌ OFFICE NOT APPROVED
+                      if (officeStatus != 'approved')
+                        const Text(
+                          "Office Status: PENDING\nWaiting for student office approval...",
+                          style: TextStyle(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.w500),
                         ),
-                      ),
 
-                      const SizedBox(height: 12),
+                      /// ⏳ APPROVED BUT LETTER NOT UPLOADED
+                      if (officeStatus == 'approved' &&
+                          officeLetter == null)
+                        const Text(
+                          "Office approved.\nWaiting for letter upload...",
+                          style: TextStyle(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.w500),
+                        ),
 
-                      /// 🔹 ONLY WHEN APPROVED
-                      if (officeStatus == 'approved') ...[
-                        if (req['office_letter_url'] !=
-                            null)
-                          ElevatedButton.icon(
-                            icon: const Icon(
-                                Icons.download),
-                            label: const Text(
-                                "Download Office Letter (Word)"),
-                            onPressed: () => openFile(
-                              'office_letters',
-                              req['office_letter_url'],
-                            ),
-                          ),
-
-                        if (req['supervisor_signed_pdf'] == null)
-                          ElevatedButton.icon(
-                            icon: const Icon(
-                                Icons.upload_file),
-                            label: const Text(
-                                "Upload Signed PDF"),
-                            onPressed: () =>
-                                uploadSignedPdf(req['id']),
-                          ),
-
-                        if (req['supervisor_signed_pdf'] !=
-                            null)
-                          const Padding(
-                            padding:
-                            EdgeInsets.only(top: 8),
-                            child: Row(
-                              children: [
-                                Icon(
-                                    Icons
-                                        .check_circle,
-                                    color:
-                                    Colors.green),
-                                SizedBox(width: 6),
-                                Text(
-                                    "Signed PDF sent to student"),
-                              ],
-                            ),
-                          ),
+                      /// 📄 LETTER RECEIVED
+                      if (officeLetter != null &&
+                          signedPdf == null) ...[
+                        const Text(
+                          "Office Letter Received",
+                          style: TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.download),
+                          label: const Text(
+                              "Download Office Letter (Word)"),
+                          onPressed: () => openFile(
+                              'letters_from_office',
+                              officeLetter),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton.icon(
+                          icon:
+                          const Icon(Icons.upload_file),
+                          label:
+                          const Text("Upload PDF for Student"),
+                          onPressed: () =>
+                              uploadSignedPdf(req['id']),
+                        ),
                       ],
+
+                      /// ✅ COMPLETED
+                      if (signedPdf != null)
+                        Row(
+                          children: const [
+                            Icon(Icons.check_circle,
+                                color: Colors.green),
+                            SizedBox(width: 6),
+                            Text(
+                                "Signed PDF sent to student"),
+                          ],
+                        ),
                     ],
                   ),
                 ),

@@ -21,15 +21,15 @@ class _SupervisorRequestsScreenState extends State<SupervisorRequestsScreen> {
     fetchRequests();
   }
 
-  /// 🔹 FETCH PENDING + APPROVED REQUESTS
+  /// 🔹 FETCH SUPERVISOR REQUESTS
   Future<void> fetchRequests() async {
     final supervisorId = supabase.auth.currentUser!.id;
 
     final res = await supabase
         .from('teacher_request')
-        .select('id,status,student_id')
+        .select(
+        'id,status,student_id,forwarded_to_office,office_letter_url')
         .eq('supervisor_id', supervisorId)
-        .or('status.eq.pending,status.eq.approved')
         .order('created_at', ascending: true);
 
     setState(() {
@@ -47,31 +47,29 @@ class _SupervisorRequestsScreenState extends State<SupervisorRequestsScreen> {
         .single();
   }
 
-  /// 🔹 APPROVE OR REJECT
+  /// 🔹 APPROVE / REJECT
   Future<void> updateStatus(String id, String status) async {
-    await supabase
-        .from('teacher_request')
-        .update({'status': status})
-        .eq('id', id);
+    await supabase.from('teacher_request').update({
+      'status': status,
+      'forwarded_at': DateTime.now().toIso8601String(),
+    }).eq('id', id);
 
     fetchRequests();
   }
 
-  /// 🔹 FORWARD TO STUDENT OFFICE (ONLY AFTER APPROVE)
+  /// 🔹 FORWARD TO STUDENT OFFICE
   Future<void> forwardToOffice(String requestId) async {
-    await supabase
-        .from('teacher_request')
-        .update({
+    await supabase.from('teacher_request').update({
       'status': 'forwarded',
       'forwarded_to_office': true,
       'forwarded_at': DateTime.now().toIso8601String(),
-    })
-        .eq('id', requestId);
+    }).eq('id', requestId);
 
     fetchRequests();
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Request forwarded to Student Office")),
+      const SnackBar(
+          content: Text("Request forwarded to Student Office")),
     );
   }
 
@@ -105,16 +103,23 @@ class _SupervisorRequestsScreenState extends State<SupervisorRequestsScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment:
+                    CrossAxisAlignment.start,
                     children: [
-                      Text("Name: ${student['name']}"),
-                      Text("ARID No: ${student['arid_no']}"),
-                      Text("Semester: ${student['semester']}"),
-                      Text("Email: ${student['email']}"),
+                      Text(
+                        student['name'],
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      Text("ARID: ${student['arid_no']}"),
+                      Text(
+                          "Semester: ${student['semester']}"),
+                      Text(student['email']),
 
                       const SizedBox(height: 12),
 
-                      /// 🔹 STATUS BADGE
+                      /// 🔹 STATUS
                       Text(
                         "Status: ${req['status'].toString().toUpperCase()}",
                         style: const TextStyle(
@@ -123,26 +128,26 @@ class _SupervisorRequestsScreenState extends State<SupervisorRequestsScreen> {
 
                       const SizedBox(height: 12),
 
-                      /// 🔹 BUTTON LOGIC
+                      /// 🔹 PENDING → APPROVE / REJECT
                       if (req['status'] == 'pending') ...[
                         Row(
-                          mainAxisAlignment:
-                          MainAxisAlignment.spaceBetween,
                           children: [
                             ElevatedButton(
-                              onPressed: () => updateStatus(
-                                  req['id'], 'approved'),
+                              onPressed: () =>
+                                  updateStatus(req['id'], 'approved'),
                               child: const Text("Approve"),
                             ),
+                            const SizedBox(width: 10),
                             OutlinedButton(
-                              onPressed: () => updateStatus(
-                                  req['id'], 'rejected'),
+                              onPressed: () =>
+                                  updateStatus(req['id'], 'rejected'),
                               child: const Text("Reject"),
                             ),
                           ],
                         ),
                       ],
 
+                      /// 🔹 APPROVED → FORWARD
                       if (req['status'] == 'approved') ...[
                         ElevatedButton(
                           onPressed: () =>
@@ -151,6 +156,31 @@ class _SupervisorRequestsScreenState extends State<SupervisorRequestsScreen> {
                               "Forward to Student Office"),
                         ),
                       ],
+
+                      /// 🔹 FORWARDED → WAIT
+                      if (req['status'] == 'forwarded' &&
+                          req['office_letter_url'] == null)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Text(
+                            "Waiting for Student Office letter...",
+                            style: TextStyle(
+                                color: Colors.orange,
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ),
+
+                      /// 🔹 OFFICE UPLOADED
+                      if (req['office_letter_url'] != null)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Text(
+                            "Office letter uploaded ✔",
+                            style: TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
                     ],
                   ),
                 ),

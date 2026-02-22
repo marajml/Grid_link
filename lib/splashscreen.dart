@@ -49,9 +49,7 @@ class _SplashScreenState extends State<SplashScreen> {
         context.go('/companydashboard');
       } else if (role == 'Supervisor') {
         context.go('/supervisorhome');
-      }
-
-      else if (role == 'Student Office') {
+      } else if (role == 'Student Office') {
         context.go('/officehome');
       }
 
