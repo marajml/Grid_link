@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:grid_link/student_dir/post.dart';
 
 import 'home.dart';
 import 'jobs.dart';
+import 'letter_request.dart';
 import 'notification.dart';
+
 class StudentHome extends StatefulWidget {
   const StudentHome({super.key});
 
@@ -14,12 +15,13 @@ class StudentHome extends StatefulWidget {
 
 class _StudentHomeState extends State<StudentHome> {
 
-  int _curretnindesx=0;
-  final List<Widget> _page=[
+  int _currentIndex = 0;
+  final List<Widget> _page = [
     HomeScreen(),
-    Studentpost(),
+    const Studentpost(),
+    const SupervisorRequestScreen(),
     NotificationStudent(),
-    StudentJobFeed()
+    StudentJobFeed(),
   ];
   @override
   Widget build(BuildContext context) {
@@ -27,11 +29,11 @@ class _StudentHomeState extends State<StudentHome> {
 
 
       body:
-        _page[_curretnindesx],
+        _page[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _curretnindesx,
+        currentIndex: _currentIndex,
           onTap: (index){
-          _curretnindesx=index;
+          _currentIndex = index;
           setState(() {
 
           });
@@ -44,8 +46,9 @@ class _StudentHomeState extends State<StudentHome> {
           items: [
             BottomNavigationBarItem(icon: Icon(Icons.home_filled,size: 20,),label: "Home"),
             BottomNavigationBarItem(icon: Icon(Icons.add_box_rounded,size: 20,),label: "Post"),
+            BottomNavigationBarItem(icon: Icon(Icons.mail_outline,size: 20,),label: "Request"),
             BottomNavigationBarItem(icon: Icon(Icons.notification_add,size: 20,),label: "Notification"),
-            BottomNavigationBarItem(icon: Icon(Icons.add_card,size: 20,),label: "JObs"),
+            BottomNavigationBarItem(icon: Icon(Icons.work_outline,size: 20,),label: "Jobs"),
           ]),
     );
   }

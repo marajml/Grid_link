@@ -14,8 +14,7 @@ class _StudentRequestStatusScreenState
     extends State<StudentRequestStatusScreen> {
   final supabase = Supabase.instance.client;
 
-  Map<String, dynamic>? request;
-  Map<String, dynamic>? supervisor;
+  List<Map<String, dynamic>> requests = [];
   List<Map<String, dynamic>> confirmedJobs = [];
 
   bool loading = true;
@@ -29,154 +28,188 @@ class _StudentRequestStatusScreenState
   Future<void> fetchAll() async {
     final studentId = supabase.auth.currentUser!.id;
 
-    /// 🔹 FETCH REQUEST
-    request = await supabase
+    final res = await supabase
         .from('teacher_request')
-        .select('status,supervisor_id,supervisor_signed_pdf')
+        .select('''
+          id,
+          status,
+          supervisor_id,
+          supervisor_signed_pdf,
+          supervisor:supervisor_id ( name, email )
+        ''')
         .eq('student_id', studentId)
-        .single();
+        .order('created_at', ascending: false);
 
-    /// 🔹 FETCH SUPERVISOR
-    if (request!['supervisor_id'] != null) {
-      supervisor = await supabase
-          .from('userauth')
-          .select('name,email')
-          .eq('id', request!['supervisor_id'])
-          .single();
-    }
-
-    /// 🔹 FETCH CONFIRMED JOBS
     confirmedJobs = List<Map<String, dynamic>>.from(
       await supabase
           .from('job_applications')
-          .select(
-          'id,job_id,company_post(title,company_id)')
+          .select('id,job_id,company_post(title,company_id)')
           .eq('student_id', studentId)
           .eq('status', 'confirmed'),
     );
 
-    setState(() => loading = false);
+    if (!mounted) return;
+    setState(() {
+      requests = List<Map<String, dynamic>>.from(res);
+      loading = false;
+    });
   }
 
   Future<void> openPdf(String path) async {
-    final url = supabase.storage
-        .from('signed_letters')
-        .getPublicUrl(path);
+    final url =
+        supabase.storage.from('signed_letters').getPublicUrl(path);
 
-    await launchUrl(Uri.parse(url),
-        mode: LaunchMode.externalApplication);
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 
-  /// 🔹 SEND LETTER TO COMPANY
   Future<void> forwardToCompany(
-      String companyId) async {
+    String companyId,
+    Map<String, dynamic> req,
+  ) async {
+    final pdf = req['supervisor_signed_pdf'];
+    if (pdf == null) return;
+
     await supabase.from('company_recommendations').insert({
       'student_id': supabase.auth.currentUser!.id,
       'company_id': companyId,
-      'recommendation_pdf':
-      request!['supervisor_signed_pdf'],
-      'supervisor_id': request!['supervisor_id'],
+      'recommendation_pdf': pdf,
+      'supervisor_id': req['supervisor_id'],
     });
 
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text(
-              "Recommendation sent to company")),
+      const SnackBar(content: Text('Recommendation sent to company')),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:
-      AppBar(title: const Text("Request Status")),
+      appBar: AppBar(title: const Text('Request status')),
       body: loading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+          : RefreshIndicator(
+              onRefresh: fetchAll,
+              child: requests.isEmpty
+                  ? ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [
+                        SizedBox(height: 48),
+                        Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 24),
+                            child: Text(
+                              'No supervisor requests yet. Use the Request tab to send one.',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        for (final req in requests) ...[
+                          _RequestCard(
+                            request: req,
+                            confirmedJobs: confirmedJobs,
+                            onOpenPdf: openPdf,
+                            onForwardToCompany: forwardToCompany,
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ],
+                    ),
+            ),
+    );
+  }
+}
+
+class _RequestCard extends StatelessWidget {
+  const _RequestCard({
+    required this.request,
+    required this.confirmedJobs,
+    required this.onOpenPdf,
+    required this.onForwardToCompany,
+  });
+
+  final Map<String, dynamic> request;
+  final List<Map<String, dynamic>> confirmedJobs;
+  final Future<void> Function(String path) onOpenPdf;
+  final Future<void> Function(String companyId, Map<String, dynamic> req)
+      onForwardToCompany;
+
+  @override
+  Widget build(BuildContext context) {
+    final sup = request['supervisor'] as Map<String, dynamic>?;
+    final status = request['status'] as String? ?? 'pending';
+    final pdfPath = request['supervisor_signed_pdf'] as String?;
+    final hasPdf = pdfPath != null;
+
+    final statusText = status == 'rejected'
+        ? 'Supervisor rejected this request'
+        : !hasPdf
+            ? 'Waiting for signed letter'
+            : 'Recommendation letter ready';
+
+    final statusColor = status == 'rejected'
+        ? Colors.red
+        : hasPdf
+            ? Colors.green
+            : Colors.orange;
+
+    return Card(
+      child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment:
-          CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// 🔹 STATUS
             Text(
-              request!['status'] == 'rejected'
-                  ? "❌ Supervisor rejected your request"
-                  : request!['supervisor_signed_pdf'] ==
-                  null
-                  ? "Waiting for signed letter"
-                  : "📄 Recommendation letter ready",
+              statusText,
               style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color:
-                  request!['supervisor_signed_pdf'] !=
-                      null
-                      ? Colors.green
-                      : Colors.orange),
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: statusColor,
+              ),
             ),
-
-            const SizedBox(height: 16),
-
-            /// 🔹 SUPERVISOR INFO
-            if (supervisor != null)
-              Card(
-                child: ListTile(
-                  leading:
-                  const Icon(Icons.person),
-                  title:
-                  Text(supervisor!['name']),
-                  subtitle:
-                  Text(supervisor!['email']),
-                  trailing:
-                  const Text("Supervisor"),
-                ),
+            const SizedBox(height: 12),
+            if (sup != null)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.person),
+                title: Text(sup['name'] as String? ?? ''),
+                subtitle: Text(sup['email'] as String? ?? ''),
+                trailing: const Text('Teacher'),
               ),
-
-            const SizedBox(height: 20),
-
-            /// 📄 DOWNLOAD PDF
-            if (request!['supervisor_signed_pdf'] !=
-                null)
+            if (hasPdf) ...[
+              const SizedBox(height: 8),
               ElevatedButton.icon(
-                icon:
-                const Icon(Icons.download),
-                label: const Text(
-                    "Download Recommendation Letter"),
-                onPressed: () => openPdf(
-                    request![
-                    'supervisor_signed_pdf']),
+                icon: const Icon(Icons.download),
+                label: const Text('Download signed letter (PDF)'),
+                onPressed: () => onOpenPdf(pdfPath),
               ),
-
-            const SizedBox(height: 30),
-
-            /// 🏢 CONFIRMED COMPANIES
-            if (request!['supervisor_signed_pdf'] !=
-                null &&
-                confirmedJobs.isNotEmpty) ...[
+            ],
+            if (hasPdf && confirmedJobs.isNotEmpty) ...[
+              const SizedBox(height: 16),
               const Text(
-                "Forward to Confirmed Companies",
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold),
+                'Forward to confirmed companies',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 10),
-
+              const SizedBox(height: 8),
               ...confirmedJobs.map((job) {
-                final company =
-                job['company_post'];
-
+                final company = job['company_post'] as Map<String, dynamic>?;
+                if (company == null) return const SizedBox.shrink();
                 return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    title: Text(company['title']),
-                    subtitle: const Text(
-                        "Status: Confirmed"),
+                    title: Text(company['title'] as String? ?? ''),
+                    subtitle: const Text('Status: Confirmed'),
                     trailing: ElevatedButton(
-                      onPressed: () =>
-                          forwardToCompany(
-                              company['company_id']),
-                      child:
-                      const Text("Send"),
+                      onPressed: () => onForwardToCompany(
+                        company['company_id'] as String,
+                        request,
+                      ),
+                      child: const Text('Send'),
                     ),
                   ),
                 );

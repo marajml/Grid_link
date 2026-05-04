@@ -15,8 +15,10 @@ class Student_Letter_Request with ChangeNotifier{
        status,
        userauth(
        id,
+       name,
        email,
       arid_no,
+      profile_image_url,
       profile_url,
       gpa
        ) 

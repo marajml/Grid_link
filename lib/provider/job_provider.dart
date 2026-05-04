@@ -95,16 +95,16 @@ class JobProvider extends ChangeNotifier {
     commentMap[jobId] = List<Map<String, dynamic>>.from(res);
   }
 
-  Future<void> addComment(String postId, String text) async {
+  Future<void> addComment(String jobId, String text) async {
     final userId = supabase.auth.currentUser!.id;
 
     await supabase.from('job_comment').insert({
-      'post_id': postId,
+      'job_id': jobId,
       'student_id': userId,
       'comment': text,
     });
 
-    await fetchComments(postId);
+    await fetchComments(jobId);
     notifyListeners();
   }
 }

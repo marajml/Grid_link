@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +29,7 @@ import 'company_dir/companyprovider/provider_home.dart';
 import 'student_dir/letter_request.dart';
 import 'company_dir/student_profile.dart';
 import 'login_and_registration/login.dart';
+import 'login_and_registration/reset_password.dart';
 import 'login_and_registration/signup.dart';
 
 Future<void> main() async {
@@ -41,8 +44,34 @@ Future<void> main() async {
   runApp( MyApp());
 }
 
-class MyApp extends StatelessWidget {
-   MyApp({super.key});
+class MyApp extends StatefulWidget {
+  MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late final GoRouter _router;
+  late final StreamSubscription<AuthState> _authSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _router = _buildRouter();
+
+    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((state) {
+      if (state.event == AuthChangeEvent.passwordRecovery) {
+        _router.go('/reset-password');
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSub.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,14 +103,21 @@ class MyApp extends StatelessWidget {
 
     );
   }
-  final GoRouter _router=GoRouter(
+  GoRouter _buildRouter() => GoRouter(
 
 
       routes:
   [
-    GoRoute(path: ("/"),builder: (context,state)=>SplashScreen()),
+    GoRoute(path: ("/"),builder: (context,state){
+      return SplashScreen();
+    }
+
+    ),
+
+
     GoRoute(path: "/login",builder: (context,state)=>Login()),
     GoRoute(path: '/signup',builder: (context,state)=>Signup()),
+    GoRoute(path: '/reset-password',builder: (context,state)=>const ResetPasswordScreen()),
 
     GoRoute(path: '/officehome',builder: (context,state)=>StudentOfficeRequestsScreen()),
     GoRoute(path: '/supervisorhome',builder: (context,state)=>SupervisorHome()),

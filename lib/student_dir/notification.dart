@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:grid_link/student_dir/supervisorresponsepage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'applied_jobs_page.dart';
 
@@ -25,8 +27,18 @@ class _NotificationStudentState extends State<NotificationStudent> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Notifications"),
-        backgroundColor: Colors.red,
+        backgroundColor: Colors.blue,
         centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: () {
+              final id = Supabase.instance.client.auth.currentUser?.id;
+              if (id != null) context.push('/studentprofile/$id');
+            },
+            icon: const Icon(Icons.account_circle_outlined),
+            tooltip: 'My profile',
+          ),
+        ],
       ),
       body: _pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(

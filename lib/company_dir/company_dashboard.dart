@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'company_home.dart';
-import 'companyprovider/provider_home.dart';
 import 'companyrecomendationscreen.dart';
 import 'jobpost.dart';
 class CompanyHome extends StatefulWidget {
@@ -91,10 +89,18 @@ class _CompanyHomeState extends State<CompanyHome> {
           ],
         ),
         actions: [
-          IconButton(onPressed: (){
-            logiout();
-
-          }, icon: Icon(Icons.logout))
+          IconButton(
+            onPressed: () {
+              final id = supabase.auth.currentUser?.id;
+              if (id != null) context.push('/studentprofile/$id');
+            },
+            icon: const Icon(Icons.account_circle_outlined),
+            tooltip: 'Company profile',
+          ),
+          IconButton(
+            onPressed: logiout,
+            icon: const Icon(Icons.logout),
+          ),
         ],
       ),
       body:

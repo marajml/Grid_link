@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:grid_link/student_dir/provider/studentappliedjobsprovider.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class StudentAppliedJobsScreen extends StatefulWidget {
   const StudentAppliedJobsScreen({super.key});
@@ -70,16 +68,16 @@ class _StudentAppliedJobsScreenState extends State<StudentAppliedJobsScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 8),
-
-                ElevatedButton(
-                  onPressed: status == 'confirmed'
-                      ? () {
-                    context.go("/letterRequest");
-                  }
-                      : null,
-                  child: const Text("Send Request"),
-                ),
+                if (status == 'confirmed') ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'For a recommendation letter, use the Request tab below.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ],
 
                 const SizedBox(height: 10),
               ],

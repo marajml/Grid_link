@@ -8,7 +8,7 @@ class Companydata with ChangeNotifier{
      final user=supabase.auth.currentUser;
      final data = await supabase
          .from('userauth')
-         .select('role')
+         .select('role,name')
          .eq('id', user!.id)
          .single();
      _name=data['name'] ?? " ";

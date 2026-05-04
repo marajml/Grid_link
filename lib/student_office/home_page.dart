@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:grid_link/utils/userauth_display.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -43,16 +44,23 @@ class _StudentOfficeRequestsScreenState
   Future<Map<String, dynamic>> getUser(String id) async {
     return await supabase
         .from('userauth')
-        .select('name,arid_no,email')
+        .select(
+            'id,name,arid_no,email,role,profile_image_url,profile_url,company_logo_url')
         .eq('id', id)
         .single();
   }
 
-  /// 📄 Upload Word Letter
+  Future<void> logout() async {
+    await supabase.auth.signOut();
+    if (!mounted) return;
+    context.go("/login");
+  }
+
+  /// 📄 Upload letter as PDF (required for supervisor auto-signature merge).
   Future<void> uploadLetter(String requestId) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['doc', 'docx'],
+      allowedExtensions: ['pdf'],
     );
 
     if (result == null) return;
@@ -113,7 +121,15 @@ class _StudentOfficeRequestsScreenState
         title: const Text("Student Office Requests"),
         actions: [
           IconButton(
-            onPressed: () => context.go("/login"),
+            onPressed: () {
+              final id = supabase.auth.currentUser?.id;
+              if (id != null) context.push('/studentprofile/$id');
+            },
+            icon: const Icon(Icons.account_circle_outlined),
+            tooltip: 'My profile',
+          ),
+          IconButton(
+            onPressed: logout,
             icon: const Icon(Icons.logout),
           )
         ],
@@ -143,6 +159,8 @@ class _StudentOfficeRequestsScreenState
 
               final student = snapshot.data![0];
               final supervisor = snapshot.data![1];
+              final stAv = userauthAvatarUrl(student);
+              final supAv = userauthAvatarUrl(supervisor);
 
               return Card(
                 margin: const EdgeInsets.all(12),
@@ -157,8 +175,41 @@ class _StudentOfficeRequestsScreenState
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.blueGrey)),
-                      Text("${student['name']} (${student['arid_no']})"),
-                      Text(student['email']),
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CircleAvatar(
+                            radius: 28,
+                            backgroundColor: Colors.grey.shade200,
+                            backgroundImage:
+                                stAv != null ? NetworkImage(stAv) : null,
+                            child: stAv == null
+                                ? const Icon(Icons.school_outlined)
+                                : null,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "${student['name']} (${student['arid_no']})",
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600),
+                                ),
+                                Text(student['email']?.toString() ?? ''),
+                                TextButton(
+                                  onPressed: () => context.push(
+                                    '/studentprofile/${student['id']}',
+                                  ),
+                                  child: const Text('View profile'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
 
                       const Divider(),
 
@@ -167,8 +218,41 @@ class _StudentOfficeRequestsScreenState
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.blueGrey)),
-                      Text(supervisor['name']),
-                      Text(supervisor['email']),
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CircleAvatar(
+                            radius: 28,
+                            backgroundColor: Colors.grey.shade200,
+                            backgroundImage:
+                                supAv != null ? NetworkImage(supAv) : null,
+                            child: supAv == null
+                                ? const Icon(Icons.person_outline)
+                                : null,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  supervisor['name']?.toString() ?? '',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600),
+                                ),
+                                Text(supervisor['email']?.toString() ?? ''),
+                                TextButton(
+                                  onPressed: () => context.push(
+                                    '/studentprofile/${supervisor['id']}',
+                                  ),
+                                  child: const Text('View profile'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
 
                       const Divider(height: 25),
 
@@ -209,7 +293,7 @@ class _StudentOfficeRequestsScreenState
                       ElevatedButton.icon(
                         onPressed: () => uploadLetter(req['id']),
                         icon: const Icon(Icons.upload_file),
-                        label: const Text("Upload Word Letter"),
+                        label: const Text('Upload letter (PDF only)'),
                       ),
 
                       const SizedBox(height: 10),

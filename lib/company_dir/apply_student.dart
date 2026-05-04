@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'companyprovider/applied_students_provider.dart';
+import 'package:grid_link/utils/userauth_display.dart';
 
 class AppliedStudentsScreen extends StatefulWidget {
   final String jobId;
@@ -52,26 +52,28 @@ class _AppliedStudentsScreenState extends State<AppliedStudentsScreen> {
             itemCount: provider.students.length,
             itemBuilder: (context, index) {
               final app = provider.students[index];
-              final student = app['userauth'];
+              final raw = app['userauth'];
+              if (raw is! Map) {
+                return const SizedBox.shrink();
+              }
+              final student = Map<String, dynamic>.from(raw);
 
+              final avatar = userauthAvatarUrl(student);
               return Card(
                 margin: const EdgeInsets.all(10),
                 child: ListTile(
+                  onTap: () {
+                    context.push('/studentprofile/${student['id']}');
+                  },
                   leading: CircleAvatar(
-                    child: student['profile_url'] != null && student['profile_url'].isNotEmpty
-                        ? ClipOval(
-                      child: Image.network(
-                        student['profile_url'],
-                        fit: BoxFit.cover,
-                        width: 40,
-                        height: 40,
-                      ),
-                    )
-                        : Icon(Icons.account_circle_sharp),
+                    backgroundColor: Colors.grey.shade200,
+                    backgroundImage:
+                        avatar != null ? NetworkImage(avatar) : null,
+                    child: avatar == null
+                        ? const Icon(Icons.account_circle_sharp)
+                        : null,
                   ),
-
-
-                  title: Text(student['name']),
+                  title: Text(student['name'] ?? ''),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -95,13 +97,13 @@ class _AppliedStudentsScreenState extends State<AppliedStudentsScreen> {
                           provider.updateStatus(app['id'], 'rejected');
                         },
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.arrow_forward, color: Colors.red),
-                        onPressed: () {
-                          context.go('/studentprofile/${student['id']}');
-                        },
-                      ),
-
+                      if (app['status'] == 'confirmed')
+                        IconButton(
+                          icon: const Icon(Icons.arrow_forward, color: Colors.red),
+                          onPressed: () {
+                            context.push('/studentprofile/${student['id']}');
+                          },
+                        ),
                     ],
                   ),
                 ),
