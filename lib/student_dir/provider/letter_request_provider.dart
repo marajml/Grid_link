@@ -6,7 +6,11 @@ class LetterProvider with ChangeNotifier{
   {
     final user=supabase.auth.currentUser;
     if(user==null)return;
-   final data=await supabase.from("userauth").select("name,arid_no,semester,email").eq('id', user).single();
+    await supabase
+        .from("userauth")
+        .select("name,arid_no,semester,email")
+        .eq('id', user.id)
+        .single();
 
   }
 }

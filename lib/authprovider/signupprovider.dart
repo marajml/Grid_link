@@ -6,8 +6,12 @@ import 'package:path/path.dart';
 
 
 class Signupdata with ChangeNotifier {
-  File? _image;
-  File? get Image=>_image;
+  File? _profileImage;
+  File? get profileImage => _profileImage;
+  File? _companyLogo;
+  File? get companyLogo => _companyLogo;
+  File? _supervisorSignature;
+  File? get supervisorSignature => _supervisorSignature;
   bool _isLoading = false;
   bool get isLoading => _isLoading;
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -32,7 +36,8 @@ class Signupdata with ChangeNotifier {
   }) async {
     _isLoading = true;
     notifyListeners();
-    final imageurl= await  uploadimage();
+    final profileImageUrl = await uploadProfileImage();
+    final companyLogoUrl = role == 'Company' ? await uploadCompanyLogo() : null;
 
     try {
 
@@ -53,6 +58,13 @@ class Signupdata with ChangeNotifier {
         );
       }
 
+      String? supervisorSignaturePath;
+      if (role == 'Supervisor' && _supervisorSignature != null) {
+        supervisorSignaturePath = await uploadSupervisorSignature(
+          userId: userId,
+          file: _supervisorSignature!,
+        );
+      }
 
       await _supabase.from('userauth').insert({
         'id': userId,
@@ -70,7 +82,9 @@ class Signupdata with ChangeNotifier {
         'registration_no': registration_no,
         'location': location,
         'city': city,
-        'company_logo_url':imageurl
+        'profile_image_url': profileImageUrl,
+        'company_logo_url': companyLogoUrl,
+        'supervisor_signature_path': supervisorSignaturePath,
       });
 
       notifyListeners();
@@ -119,27 +133,96 @@ class Signupdata with ChangeNotifier {
     }
 
   }
-  Future<void> pickImage() async {
+  Future<void> pickProfileImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
-      _image = File(pickedFile.path);
+      _profileImage = File(pickedFile.path);
       notifyListeners();
     }
   }
-  Future<String?> uploadimage() async{
-    if(_image == null ) return null;
-    final fileName = DateTime.now().millisecondsSinceEpoch.toString();
-    try{
-      await _supabase.storage.from('company-images').upload('logo/$fileName.png', _image!);
-      final geturl=_supabase.storage.from('company-images').getPublicUrl('logo/$fileName.png');
-      return geturl;
-    }catch(e){
-      print(e);
+
+  Future<void> pickCompanyLogo() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      _companyLogo = File(pickedFile.path);
+      notifyListeners();
+    }
+  }
+
+  Future<void> pickSupervisorSignature() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      _supervisorSignature = File(pickedFile.path);
+      notifyListeners();
+    }
+  }
+
+  void clearSupervisorSignature() {
+    _supervisorSignature = null;
+    notifyListeners();
+  }
+
+  Future<String> uploadSupervisorSignature({
+    required String userId,
+    required File file,
+  }) async {
+    final ext = extension(file.path).toLowerCase();
+    final safeExt = (ext == '.png' || ext == '.jpg' || ext == '.jpeg')
+        ? ext
+        : '.png';
+    final storagePath = '$userId/signature$safeExt';
+
+    try {
+      await _supabase.storage.from('supervisor_signatures').upload(
+            storagePath,
+            file,
+            fileOptions: const FileOptions(upsert: true),
+          );
+    } catch (e) {
+      final s = e.toString();
+      if (s.contains('Bucket not found') || s.contains('404')) {
+        throw Exception(
+          'Supabase bucket "supervisor_signatures" is missing. '
+          'Create it: Dashboard → Storage → New bucket → name supervisor_signatures (private). '
+          'Then run storage policies from supabase/migrations/20260419000000_supervisor_signature.sql',
+        );
+      }
+      rethrow;
     }
 
+    return storagePath;
+  }
 
+  Future<String?> uploadProfileImage() async {
+    if (_profileImage == null) return null;
+    final fileName = DateTime.now().millisecondsSinceEpoch.toString();
+    try {
+      final storagePath = 'profile/$fileName.png';
+      await _supabase.storage.from('company-images').upload(storagePath, _profileImage!);
+      return _supabase.storage.from('company-images').getPublicUrl(storagePath);
+    } catch (e) {
+      debugPrint('Profile image upload error: $e');
+      return null;
+    }
+  }
+
+  Future<String?> uploadCompanyLogo() async {
+    if (_companyLogo == null) return null;
+    final fileName = DateTime.now().millisecondsSinceEpoch.toString();
+    try {
+      final storagePath = 'logo/$fileName.png';
+      await _supabase.storage.from('company-images').upload(storagePath, _companyLogo!);
+      return _supabase.storage.from('company-images').getPublicUrl(storagePath);
+    } catch (e) {
+      debugPrint('Company logo upload error: $e');
+      return null;
+    }
   }
 
 }

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../provider/job_provider.dart';
 
 class StudentJobFeed extends StatefulWidget {
@@ -12,6 +13,14 @@ class StudentJobFeed extends StatefulWidget {
 }
 
 class _StudentJobFeedState extends State<StudentJobFeed> {
+  final supabase = Supabase.instance.client;
+
+  Future<void> logout() async {
+    await supabase.auth.signOut();
+    if (!mounted) return;
+    context.go("/login");
+  }
+
   @override
   void initState() {
     super.initState();
@@ -26,7 +35,7 @@ class _StudentJobFeedState extends State<StudentJobFeed> {
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.red,
+        backgroundColor: Colors.blue,
         centerTitle: true,
         title: const Text(
           "Job Feed",
@@ -34,10 +43,14 @@ class _StudentJobFeedState extends State<StudentJobFeed> {
         ),
         actions: [
           IconButton(
-              onPressed: () {
-                context.go("/login");
-              },
-              icon: const Icon(Icons.logout))
+            onPressed: () {
+              final id = supabase.auth.currentUser?.id;
+              if (id != null) context.push('/studentprofile/$id');
+            },
+            icon: const Icon(Icons.account_circle_outlined),
+            tooltip: 'My profile',
+          ),
+          IconButton(onPressed: logout, icon: const Icon(Icons.logout)),
         ],
       ),
       body: provider.jobs.isEmpty

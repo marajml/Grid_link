@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:grid_link/utils/userauth_display.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupervisorRequestsScreen extends StatefulWidget {
@@ -42,7 +44,8 @@ class _SupervisorRequestsScreenState extends State<SupervisorRequestsScreen> {
   Future<Map<String, dynamic>> getStudent(String id) async {
     return await supabase
         .from('userauth')
-        .select('name,arid_no,semester,email')
+        .select(
+            'id,name,arid_no,semester,email,role,profile_image_url,profile_url,company_logo_url')
         .eq('id', id)
         .single();
   }
@@ -97,6 +100,7 @@ class _SupervisorRequestsScreenState extends State<SupervisorRequestsScreen> {
               }
 
               final student = snapshot.data!;
+              final stAv = userauthAvatarUrl(student);
 
               return Card(
                 margin: const EdgeInsets.all(12),
@@ -106,16 +110,44 @@ class _SupervisorRequestsScreenState extends State<SupervisorRequestsScreen> {
                     crossAxisAlignment:
                     CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        student['name'],
-                        style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CircleAvatar(
+                            radius: 32,
+                            backgroundColor: Colors.grey.shade200,
+                            backgroundImage:
+                                stAv != null ? NetworkImage(stAv) : null,
+                            child: stAv == null
+                                ? const Icon(Icons.person, size: 32)
+                                : null,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  student['name']?.toString() ?? '',
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                Text("ARID: ${student['arid_no']}"),
+                                Text(
+                                    "Semester: ${student['semester']}"),
+                                Text(student['email']?.toString() ?? ''),
+                                TextButton(
+                                  onPressed: () => context.push(
+                                    '/studentprofile/${student['id']}',
+                                  ),
+                                  child: const Text('View full profile'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      Text("ARID: ${student['arid_no']}"),
-                      Text(
-                          "Semester: ${student['semester']}"),
-                      Text(student['email']),
 
                       const SizedBox(height: 12),
 

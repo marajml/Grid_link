@@ -148,13 +148,43 @@ class _SignupState extends State<Signup> {
                               DropdownMenuItem(value: role, child: Text(role)),
                         )
                         .toList(),
-                    onChanged: (value) => setState(() => selectedRole = value),
+                    onChanged: (value) {
+                      final prev = selectedRole;
+                      setState(() => selectedRole = value);
+                      if (prev == 'Supervisor' && value != 'Supervisor') {
+                        Provider.of<Signupdata>(context, listen: false)
+                            .clearSupervisorSignature();
+                      }
+                    },
                     validator: (value) {
                       if (value == null) return 'Select a role';
                       return null;
                     },
                   ),
                   SizedBox(height: 7.h),
+                  if (selectedRole != null) ...[
+                    Text("Upload your profile image"),
+                    SizedBox(height: 8.h),
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            provider.pickProfileImage();
+                          },
+                          icon: const Icon(Icons.account_circle),
+                        ),
+                        provider.profileImage != null
+                            ? Image.file(
+                                File(provider.profileImage!.path),
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                              )
+                            : const Text('No image selected'),
+                      ],
+                    ),
+                    SizedBox(height: 12.h),
+                  ],
 
                   // Student fields
                   if (selectedRole == 'Student') ...[
@@ -292,6 +322,39 @@ class _SignupState extends State<Signup> {
                       },
                     ),
                     SizedBox(height: 12.h),
+                    Text(
+                      'Digital signature (image)',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () => provider.pickSupervisorSignature(),
+                          icon: const Icon(Icons.draw_outlined),
+                          tooltip: 'Pick signature image',
+                        ),
+                        Expanded(
+                          child: provider.supervisorSignature != null
+                              ? Image.file(
+                                  File(provider.supervisorSignature!.path),
+                                  height: 64.h,
+                                  fit: BoxFit.contain,
+                                )
+                              : Text(
+                                  'Upload a clear PNG/JPG of your signature',
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    color: Colors.grey.shade700,
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 12.h),
                   ],
 
                   // Company fields
@@ -317,24 +380,24 @@ class _SignupState extends State<Signup> {
                       },
                     ),
                     SizedBox(height: 12.h),
-                    Text("UPload your logo"),
+                    Text("Upload your company logo"),
                     SizedBox(height: 8.h),
                     Row(
                       children: [
                         IconButton(
                           onPressed: () {
-                            provider.pickImage();
+                            provider.pickCompanyLogo();
                           },
-                          icon: Icon(Icons.image),
+                          icon: const Icon(Icons.image),
                         ),
-                        ?provider.Image != null
+                        provider.companyLogo != null
                             ? Image.file(
-                                File(provider.Image!.path),
+                                File(provider.companyLogo!.path),
                                 width: 100,
                                 height: 100,
                                 fit: BoxFit.cover,
                               )
-                            : null,
+                            : const Text('No logo selected'),
                       ],
                     ),
                   ],
@@ -368,6 +431,34 @@ class _SignupState extends State<Signup> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text('Please upload your CV'),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                if (provider.profileImage == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please upload profile image'),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                if (selectedRole == 'Company' &&
+                                    provider.companyLogo == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please upload company logo'),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                if (selectedRole == 'Supervisor' &&
+                                    provider.supervisorSignature == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Please upload your signature image',
+                                      ),
                                     ),
                                   );
                                   return;

@@ -23,7 +23,11 @@ class AppliedStudentsProvider extends ChangeNotifier {
             email,
             arid_no,
             cv_url,
-            gpa
+            gpa,
+            role,
+            profile_image_url,
+            profile_url,
+            company_logo_url
           )
         ''')
         .eq('job_id', jobId);
